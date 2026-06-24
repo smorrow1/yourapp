@@ -24,7 +24,8 @@ Gating lives in [`src/lib/gating.ts`](src/lib/gating.ts). The paywall is a **sof
 
 ## Tech stack
 
-- **Expo (managed)** + **React Native** + **TypeScript**
+- **Expo SDK 54** (managed, New Architecture) + **React Native 0.81** / **React 19** + **TypeScript**
+  - Requires **Node 20.19.4+** (or 22.x) to run the dev server.
 - **React Navigation** (bottom tabs + native stack)
 - **Zustand** + `persist` → AsyncStorage (offline-first, **no backend, no auth**)
 - **react-native-svg** for the trend chart (no heavy chart dep)

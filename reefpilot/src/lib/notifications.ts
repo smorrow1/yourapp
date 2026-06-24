@@ -3,7 +3,10 @@ import { Platform } from 'react-native';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
-    shouldShowAlert: true,
+    // expo-notifications 0.32+ (Expo SDK 54): shouldShowAlert is replaced by
+    // the more granular shouldShowBanner / shouldShowList.
+    shouldShowBanner: true,
+    shouldShowList: true,
     shouldPlaySound: false,
     shouldSetBadge: false,
   }),
@@ -23,13 +26,10 @@ export async function ensureNotificationPermission(): Promise<boolean> {
 export async function scheduleTestReminder(
   tankName: string,
   everyDays: number,
-  hour = 18,
 ): Promise<string | null> {
   const ok = await ensureNotificationPermission();
   if (!ok) return null;
 
-  // expo-notifications can't natively repeat every N days, so we schedule the
-  // next occurrence and re-arm on fire. For weekly we use a weekday trigger.
   const seconds = everyDays * 24 * 60 * 60;
 
   const id = await Notifications.scheduleNotificationAsync({
@@ -37,10 +37,15 @@ export async function scheduleTestReminder(
       title: '🌊 Time to test your reef',
       body: `${tankName} is due for a water test.`,
     },
+    // Web has no native scheduler; fire immediately there, repeat on device.
     trigger:
       Platform.OS === 'web'
         ? null
-        : { seconds, repeats: true, channelId: 'reminders' },
+        : {
+            type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+            seconds,
+            repeats: true,
+          },
   });
   return id;
 }
