@@ -52,4 +52,21 @@ export interface Reading {
 
 export type UnitSystem = 'imperial' | 'metric';
 
+export type TankEventType = 'dose' | 'waterChange';
+
+/** A logged action on a tank — used to keep consumption estimates honest. */
+export interface TankEvent {
+  id: string;
+  tankId: string;
+  at: string; // ISO timestamp
+  type: TankEventType;
+  /** Dose: which parameter was dosed, with what product and how many mL. */
+  paramKey?: ParameterKey;
+  productId?: string;
+  amountMl?: number;
+  /** Water change: percent of system volume replaced. */
+  percent?: number;
+  note?: string;
+}
+
 export type PremiumPlan = 'free' | 'lifetime' | 'monthly' | 'yearly';

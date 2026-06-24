@@ -88,5 +88,6 @@ ReefPilot's dosing calculator is an **informational helper only** — always fol
 
 ## Roadmap
 
+- **Shipped** — dose & water-change logging (`Log dose / water change`), with the consumption estimate now netting out logged doses and skipping water-change intervals.
 - **v1.1** — custom parameters & ranges, save your own dosing products, ICP CSV import.
 - **v1.2** — optional encrypted cloud backup/sync (same store interface), Apple Health-style streaks, shareable tank report.

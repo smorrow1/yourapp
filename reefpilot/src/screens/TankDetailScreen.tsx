@@ -12,9 +12,11 @@ import { SectionHeader } from '@/components/SectionHeader';
 import { colors, spacing, typography } from '@/theme';
 import { useTankStore } from '@/store/useTankStore';
 import { useReadingStore } from '@/store/useReadingStore';
-import { CORE_PARAMETER_KEYS } from '@/domain/parameters';
+import { useEventStore } from '@/store/useEventStore';
+import { CORE_PARAMETER_KEYS, PARAMETERS_BY_KEY } from '@/domain/parameters';
 import { timeAgo } from '@/lib/format';
 import type { RootStackParamList } from '@/navigation/types';
+import type { TankEvent } from '@/types';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 type Rt = RouteProp<RootStackParamList, 'TankDetail'>;
@@ -40,6 +42,12 @@ export function TankDetailScreen() {
 
   const latest = readings[0];
 
+  const allEvents = useEventStore((s) => s.events);
+  const events = useMemo(
+    () => allEvents.filter((e) => e.tankId === tankId).sort((a, b) => +new Date(b.at) - +new Date(a.at)),
+    [allEvents, tankId],
+  );
+
   useLayoutEffect(() => {
     navigation.setOptions({ title: tank?.name ?? 'Tank' });
     if (tank) selectTank(tank.id);
@@ -54,13 +62,14 @@ export function TankDetailScreen() {
   }
 
   const confirmDelete = () => {
-    Alert.alert('Delete tank?', `This removes ${tank.name} and all its readings.`, [
+    Alert.alert('Delete tank?', `This removes ${tank.name}, its readings, and its activity.`, [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Delete',
         style: 'destructive',
         onPress: () => {
           useReadingStore.setState((s) => ({ readings: s.readings.filter((r) => r.tankId !== tankId) }));
+          useEventStore.getState().removeEventsForTank(tankId);
           removeTank(tankId);
           navigation.goBack();
         },
@@ -74,6 +83,12 @@ export function TankDetailScreen() {
         label="Log a test"
         onPress={() => navigation.navigate('AddReading', { tankId })}
         icon={<Ionicons name="add-circle-outline" size={20} color={colors.bg} />}
+      />
+      <Button
+        label="Log dose / water change"
+        variant="secondary"
+        onPress={() => navigation.navigate('LogEvent', { tankId })}
+        icon={<Ionicons name="eyedrop-outline" size={18} color={colors.text} />}
       />
 
       {!latest ? (
@@ -129,9 +144,36 @@ export function TankDetailScreen() {
         </>
       )}
 
+      {events.length > 0 ? (
+        <>
+          <SectionHeader title="Activity" subtitle={`${events.length} logged`} />
+          {events.map((ev) => (
+            <Card key={ev.id}>
+              <View style={styles.histRow}>
+                <View style={styles.activityLeft}>
+                  <Ionicons
+                    name={ev.type === 'dose' ? 'eyedrop-outline' : 'water-outline'}
+                    size={16}
+                    color={colors.primary}
+                  />
+                  <Text style={typography.body}>{describeEvent(ev)}</Text>
+                </View>
+                <Text style={typography.caption}>{timeAgo(ev.at)}</Text>
+              </View>
+            </Card>
+          ))}
+        </>
+      ) : null}
+
       <Button label="Delete tank" variant="danger" onPress={confirmDelete} style={styles.delete} />
     </ScreenContainer>
   );
+}
+
+function describeEvent(ev: TankEvent): string {
+  if (ev.type === 'waterChange') return `${ev.percent ?? 0}% water change`;
+  const label = ev.paramKey ? PARAMETERS_BY_KEY[ev.paramKey].label : 'Dose';
+  return `Dosed ${ev.amountMl ?? 0} mL · ${label}`;
 }
 
 const styles = StyleSheet.create({
@@ -139,5 +181,6 @@ const styles = StyleSheet.create({
   params: { paddingVertical: spacing.sm },
   divider: { height: 1, backgroundColor: colors.border, marginVertical: 2 },
   histRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  activityLeft: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, flex: 1 },
   delete: { marginTop: spacing.xl },
 });

@@ -1,4 +1,4 @@
-import type { Reading, Tank } from '@/types';
+import type { Reading, Tank, TankEvent } from '@/types';
 
 /** Seed used the very first launch so the app never opens empty during the demo. */
 export const SAMPLE_TANK: Tank = {
@@ -37,5 +37,18 @@ export const SAMPLE_READINGS: Reading[] = [
     tankId: 'sample-tank',
     takenAt: daysAgo(1),
     values: { temp: 77.8, salinity: 35, ph: 8.12, alkalinity: 8.6, calcium: 435, magnesium: 1330, nitrate: 7, phosphate: 0.04 },
+  },
+];
+
+export const SAMPLE_EVENTS: TankEvent[] = [
+  { id: 'e1', tankId: 'sample-tank', at: daysAgo(10), type: 'waterChange', percent: 15 },
+  {
+    id: 'e2',
+    tankId: 'sample-tank',
+    at: daysAgo(3),
+    type: 'dose',
+    paramKey: 'alkalinity',
+    productId: 'generic-alk-soda',
+    amountMl: 50,
   },
 ];

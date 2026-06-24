@@ -15,6 +15,7 @@ export type RootStackParamList = {
   AddTank: undefined;
   TankDetail: { tankId: string };
   AddReading: { tankId: string };
+  LogEvent: { tankId: string; presetProductId?: string; presetAmountMl?: number };
   DosingCalculator: { tankId: string; paramKey?: ParameterKey };
   Paywall: { feature?: PremiumFeature } | undefined;
   Feedback: undefined;

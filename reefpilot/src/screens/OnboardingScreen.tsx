@@ -8,6 +8,7 @@ import { NumberField } from '@/components/NumberField';
 import { colors, radius, spacing, typography } from '@/theme';
 import { useTankStore } from '@/store/useTankStore';
 import { useReadingStore } from '@/store/useReadingStore';
+import { useEventStore } from '@/store/useEventStore';
 import { useSettingsStore } from '@/store/useSettingsStore';
 import { SAMPLE_TANK } from '@/domain/sampleData';
 import type { TankType } from '@/types';
@@ -34,6 +35,7 @@ export function OnboardingScreen() {
     useReadingStore.setState((s) => ({
       readings: s.readings.filter((r) => r.tankId !== SAMPLE_TANK.id),
     }));
+    useEventStore.getState().removeEventsForTank(SAMPLE_TANK.id);
     setOnboarded(true);
   };
 

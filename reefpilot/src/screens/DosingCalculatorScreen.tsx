@@ -10,6 +10,7 @@ import { NumberField } from '@/components/NumberField';
 import { colors, radius, spacing, typography } from '@/theme';
 import { useTankStore } from '@/store/useTankStore';
 import { useReadingStore } from '@/store/useReadingStore';
+import { useEventStore } from '@/store/useEventStore';
 import { usePremiumStore } from '@/store/usePremiumStore';
 import { calculateDose, DOSING_PRODUCTS } from '@/domain/dosing';
 import { estimateDailyConsumption, maintenanceDosePerDay, suggestNextTestDays } from '@/domain/consumption';
@@ -26,8 +27,9 @@ export function DosingCalculatorScreen() {
 
   const tank = useTankStore((s) => s.tanks.find((t) => t.id === tankId));
   const latest = useReadingStore((s) => s.latestForTank(tankId));
-  // Subscribe to the stable array; derive the per-tank slice with useMemo.
+  // Subscribe to the stable arrays; derive the per-tank slices with useMemo.
   const allReadings = useReadingStore((s) => s.readings);
+  const allEvents = useEventStore((s) => s.events);
 
   // Default to the product matching the parameter the user tapped, else the first.
   const initialProduct =
@@ -43,8 +45,14 @@ export function DosingCalculatorScreen() {
   const [target, setTarget] = useState(String((def.min + def.max) / 2));
 
   const consumption = useMemo(
-    () => estimateDailyConsumption(allReadings.filter((r) => r.tankId === tankId), product.parameter),
-    [allReadings, tankId, product.parameter],
+    () =>
+      estimateDailyConsumption({
+        readings: allReadings.filter((r) => r.tankId === tankId),
+        key: product.parameter,
+        volumeGallons: parseFloat(volume) || 0,
+        events: allEvents.filter((e) => e.tankId === tankId),
+      }),
+    [allReadings, allEvents, tankId, product.parameter, volume],
   );
 
   if (!isPro) {
@@ -101,6 +109,20 @@ export function DosingCalculatorScreen() {
         )}
       </Card>
 
+      {!result.needsReduction && result.doseMl > 0 ? (
+        <Button
+          label={`Log this ${result.doseMl} mL dose`}
+          variant="secondary"
+          onPress={() =>
+            navigation.navigate('LogEvent', {
+              tankId,
+              presetProductId: product.id,
+              presetAmountMl: result.doseMl,
+            })
+          }
+        />
+      ) : null}
+
       <Card style={styles.maintenance}>
         <View style={styles.maintHead}>
           <Ionicons name="trending-down-outline" size={18} color={colors.primary} />
@@ -127,7 +149,11 @@ export function DosingCalculatorScreen() {
               value={`~${suggestNextTestDays(product.parameter, consumption.perDay)} days`}
             />
             <Text style={[typography.caption, styles.maintEmpty]}>
-              Estimated from {consumption.intervals} interval{consumption.intervals === 1 ? '' : 's'} of your history.
+              Estimated from {consumption.intervals} interval{consumption.intervals === 1 ? '' : 's'} of your history
+              {consumption.skippedForWaterChange > 0
+                ? `; ${consumption.skippedForWaterChange} skipped for water changes`
+                : ''}
+              . Logged doses are accounted for.
             </Text>
           </View>
         )}
