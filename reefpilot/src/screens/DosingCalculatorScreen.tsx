@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -12,6 +12,7 @@ import { useTankStore } from '@/store/useTankStore';
 import { useReadingStore } from '@/store/useReadingStore';
 import { usePremiumStore } from '@/store/usePremiumStore';
 import { calculateDose, DOSING_PRODUCTS } from '@/domain/dosing';
+import { estimateDailyConsumption, maintenanceDosePerDay, suggestNextTestDays } from '@/domain/consumption';
 import { PARAMETERS_BY_KEY } from '@/domain/parameters';
 import type { RootStackParamList } from '@/navigation/types';
 
@@ -25,6 +26,8 @@ export function DosingCalculatorScreen() {
 
   const tank = useTankStore((s) => s.tanks.find((t) => t.id === tankId));
   const latest = useReadingStore((s) => s.latestForTank(tankId));
+  // Subscribe to the stable array; derive the per-tank slice with useMemo.
+  const allReadings = useReadingStore((s) => s.readings);
 
   // Default to the product matching the parameter the user tapped, else the first.
   const initialProduct =
@@ -38,6 +41,11 @@ export function DosingCalculatorScreen() {
     latest?.values[product.parameter] !== undefined ? String(latest.values[product.parameter]) : String(def.min),
   );
   const [target, setTarget] = useState(String((def.min + def.max) / 2));
+
+  const consumption = useMemo(
+    () => estimateDailyConsumption(allReadings.filter((r) => r.tankId === tankId), product.parameter),
+    [allReadings, tankId, product.parameter],
+  );
 
   if (!isPro) {
     return <ProGate onUnlock={() => navigation.replace('Paywall', { feature: 'dosing' })} />;
@@ -93,6 +101,38 @@ export function DosingCalculatorScreen() {
         )}
       </Card>
 
+      <Card style={styles.maintenance}>
+        <View style={styles.maintHead}>
+          <Ionicons name="trending-down-outline" size={18} color={colors.primary} />
+          <Text style={typography.heading}>Consumption & maintenance</Text>
+        </View>
+        {consumption.perDay === null ? (
+          <Text style={[typography.caption, styles.maintEmpty]}>
+            Log at least two tests showing a drop in {def.label.toLowerCase()} and we'll estimate your
+            tank's daily uptake, a steady maintenance dose, and when to test next.
+          </Text>
+        ) : (
+          <View style={styles.statRows}>
+            <StatRow
+              label="Daily uptake"
+              value={`${consumption.perDay.toFixed(def.decimals === 0 ? 1 : def.decimals)} ${def.unit}/day`}
+            />
+            <StatRow
+              label="Hold steady with"
+              value={`~${maintenanceDosePerDay(product, parseFloat(volume) || 0, consumption.perDay)} mL/day`}
+              highlight
+            />
+            <StatRow
+              label="Test again in"
+              value={`~${suggestNextTestDays(product.parameter, consumption.perDay)} days`}
+            />
+            <Text style={[typography.caption, styles.maintEmpty]}>
+              Estimated from {consumption.intervals} interval{consumption.intervals === 1 ? '' : 's'} of your history.
+            </Text>
+          </View>
+        )}
+      </Card>
+
       <View style={styles.disclaimer}>
         <Ionicons name="information-circle-outline" size={16} color={colors.textFaint} />
         <Text style={styles.disclaimerText}>
@@ -104,6 +144,15 @@ export function DosingCalculatorScreen() {
   );
 }
 
+function StatRow({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
+  return (
+    <View style={styles.statRow}>
+      <Text style={typography.body}>{label}</Text>
+      <Text style={[styles.statValue, highlight && { color: colors.primary }]}>{value}</Text>
+    </View>
+  );
+}
+
 function ProGate({ onUnlock }: { onUnlock: () => void }) {
   return (
     <ScreenContainer>
@@ -111,7 +160,8 @@ function ProGate({ onUnlock }: { onUnlock: () => void }) {
         <Ionicons name="lock-closed" size={28} color={colors.primary} />
         <Text style={[typography.heading, { marginTop: spacing.md }]}>Dosing Calculator is a Pro feature</Text>
         <Text style={[typography.body, { color: colors.textMuted, textAlign: 'center', marginTop: 6 }]}>
-          Get the exact mL to dose for your tank volume — no more guesswork.
+          Get the exact mL to dose, plus your tank's measured consumption rate and a steady
+          maintenance dose — no more guesswork.
         </Text>
         <Button label="Unlock ReefPilot Pro" onPress={onUnlock} style={{ alignSelf: 'stretch', marginTop: spacing.lg }} />
       </Card>
@@ -133,6 +183,12 @@ const styles = StyleSheet.create({
   productActive: { backgroundColor: `${colors.primary}22`, borderColor: colors.primary, color: colors.primary },
   result: { alignItems: 'center', gap: 4, backgroundColor: colors.surfaceAlt },
   doseValue: { fontSize: 40, fontWeight: '800', color: colors.primary },
+  maintenance: { gap: spacing.sm },
+  maintHead: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  maintEmpty: { marginTop: spacing.xs, lineHeight: 18 },
+  statRows: { gap: spacing.sm, marginTop: spacing.xs },
+  statRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  statValue: { fontSize: 17, fontWeight: '700', color: colors.text },
   disclaimer: { flexDirection: 'row', gap: spacing.sm, paddingHorizontal: spacing.xs },
   disclaimerText: { ...typography.caption, color: colors.textFaint, flex: 1, lineHeight: 17 },
   gate: { alignItems: 'center', marginTop: spacing.xxl },

@@ -22,7 +22,7 @@ export type PremiumFeature =
 export const FEATURE_COPY: Record<PremiumFeature, { title: string; subtitle: string }> = {
   dosing: {
     title: 'Dosing Calculator',
-    subtitle: 'Get the exact mL to dose for your tank volume.',
+    subtitle: "Exact mL to dose, plus your tank's consumption rate and maintenance dose.",
   },
   export: {
     title: 'CSV Export',

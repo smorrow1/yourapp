@@ -16,7 +16,7 @@ type Rt = RouteProp<RootStackParamList, 'Paywall'>;
 
 const BENEFITS = [
   'Unlimited tanks & full history',
-  'Dosing calculator',
+  'Dosing calculator + consumption-based maintenance dose',
   'CSV export for ICP & forums',
   'Custom parameters & ranges',
   'Unlimited test reminders',

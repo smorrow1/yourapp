@@ -16,7 +16,9 @@ Free core + **ReefPilot Pro** (lifetime unlock hero at $39.99, or $24.99/yr / $4
 
 | Free | Pro |
 | --- | --- |
-| 1 tank, 30-day history, core params, status coloring, 14-day trends, 1 reminder | Unlimited tanks & history, **dosing calculator**, CSV export, custom parameters, unlimited reminders |
+| 1 tank, 30-day history, core params, status coloring, 14-day trends, 1 reminder | Unlimited tanks & history, **dosing calculator with consumption-based maintenance dosing**, CSV export, custom parameters, unlimited reminders |
+
+> **Positioning vs. the field (e.g. ReefManager):** competitors go wide — AI assistant, community map, ICP ecosystem, hardware — and their reviews flag the cost: steep learning curve and resentment at gating basic logging behind a subscription. ReefPilot's wedge is the opposite: **fast, focused, logging always free**, with one genuinely high-value computed feature — estimating your tank's consumption rate from your own tests and recommending a steady maintenance dose.
 
 Gating lives in [`src/lib/gating.ts`](src/lib/gating.ts). The paywall is a **soft** trigger fired on intent moments (open dosing, add 2nd tank, export) and once after the 3rd saved reading.
 
