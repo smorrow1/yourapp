@@ -1,10 +1,12 @@
 import React from 'react';
+import { View } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '@/theme';
-import type { TabParamList } from './types';
+import { useTankStore } from '@/store/useTankStore';
+import type { RootStackParamList, TabParamList } from './types';
 import { TankListScreen } from '@/screens/TankListScreen';
-import { LogRedirectScreen } from '@/screens/LogRedirectScreen';
 import { TrendsScreen } from '@/screens/TrendsScreen';
 import { SettingsScreen } from '@/screens/SettingsScreen';
 
@@ -16,6 +18,16 @@ const ICONS: Record<keyof TabParamList, keyof typeof Ionicons.glyphMap> = {
   Trends: 'analytics-outline',
   Settings: 'settings-outline',
 };
+
+/**
+ * Placeholder for the center "Log" tab. It is never actually displayed — the
+ * tab's `tabPress` listener intercepts the press, opens the add-reading modal,
+ * and prevents the tab from gaining focus. (A focusable redirect screen would
+ * re-open the modal every time you closed it.)
+ */
+function LogPlaceholder() {
+  return <View style={{ flex: 1, backgroundColor: colors.bg }} />;
+}
 
 export function TabNavigator() {
   return (
@@ -34,7 +46,24 @@ export function TabNavigator() {
       })}
     >
       <Tab.Screen name="Tanks" component={TankListScreen} options={{ title: 'Tanks' }} />
-      <Tab.Screen name="LogTab" component={LogRedirectScreen} options={{ title: 'Log' }} />
+      <Tab.Screen
+        name="LogTab"
+        component={LogPlaceholder}
+        options={{ title: 'Log' }}
+        listeners={({ navigation }) => ({
+          tabPress: (e) => {
+            // Don't switch to the (empty) Log tab — open the modal instead.
+            e.preventDefault();
+            const parent = navigation.getParent() as
+              | NativeStackNavigationProp<RootStackParamList>
+              | undefined;
+            const { selectedTankId, tanks } = useTankStore.getState();
+            const tankId = selectedTankId ?? tanks[0]?.id;
+            if (tankId) parent?.navigate('AddReading', { tankId });
+            else parent?.navigate('AddTank');
+          },
+        })}
+      />
       <Tab.Screen name="Trends" component={TrendsScreen} options={{ title: 'Trends' }} />
       <Tab.Screen name="Settings" component={SettingsScreen} options={{ title: 'Settings' }} />
     </Tab.Navigator>
