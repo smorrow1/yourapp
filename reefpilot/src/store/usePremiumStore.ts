@@ -18,6 +18,8 @@ interface PremiumState {
   mockPurchase: (plan: Exclude<PremiumPlan, 'free'>) => void;
   mockRestore: () => void;
   markNudgeShown: () => void;
+  /** Dev-only: force Pro on/off to test paywalled features and gates. */
+  devSetPro: (value: boolean) => void;
 }
 
 export const usePremiumStore = create<PremiumState>()(
@@ -33,6 +35,7 @@ export const usePremiumStore = create<PremiumState>()(
         // unless a prior mock purchase persisted isPro.
       },
       markNudgeShown: () => set({ upsellNudgeShown: true }),
+      devSetPro: (value) => set({ isPro: value, plan: value ? 'lifetime' : 'free' }),
     }),
     { name: 'reefpilot.premium', storage: zustandStorage },
   ),

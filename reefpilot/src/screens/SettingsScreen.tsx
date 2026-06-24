@@ -18,7 +18,7 @@ type Nav = NativeStackNavigationProp<RootStackParamList>;
 export function SettingsScreen() {
   const navigation = useNavigation<Nav>();
   const { units, setUnits, remindersEnabled, setRemindersEnabled, reminderEveryDays } = useSettingsStore();
-  const { isPro, plan } = usePremiumStore();
+  const { isPro, plan, devSetPro } = usePremiumStore();
 
   const toggleReminders = async (next: boolean) => {
     setRemindersEnabled(next);
@@ -98,6 +98,24 @@ export function SettingsScreen() {
         />
       </Card>
 
+      {__DEV__ ? (
+        <Card style={styles.devCard}>
+          <Text style={typography.label}>Developer</Text>
+          <View style={[styles.settingRow, { marginTop: spacing.sm }]}>
+            <View style={styles.flex}>
+              <Text style={typography.body}>Pro unlocked (debug)</Text>
+              <Text style={typography.caption}>Preview or hide paywalled features. Dev builds only.</Text>
+            </View>
+            <Switch
+              value={isPro}
+              onValueChange={devSetPro}
+              trackColor={{ true: colors.accent, false: colors.border }}
+              thumbColor={colors.white}
+            />
+          </View>
+        </Card>
+      ) : null}
+
       <Text style={styles.version}>ReefPilot v0.1.0 · Made for reefers</Text>
     </ScreenContainer>
   );
@@ -145,4 +163,5 @@ const styles = StyleSheet.create({
   divider: { height: 1, backgroundColor: colors.border, marginVertical: spacing.md },
   settingRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingVertical: spacing.xs },
   version: { ...typography.caption, textAlign: 'center', color: colors.textFaint },
+  devCard: { borderColor: colors.accent, borderStyle: 'dashed' },
 });
