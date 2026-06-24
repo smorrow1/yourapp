@@ -13,7 +13,9 @@ import { colors, spacing, typography } from '@/theme';
 import { useTankStore } from '@/store/useTankStore';
 import { useReadingStore } from '@/store/useReadingStore';
 import { useEventStore } from '@/store/useEventStore';
+import { usePremiumStore } from '@/store/usePremiumStore';
 import { CORE_PARAMETER_KEYS, PARAMETERS_BY_KEY } from '@/domain/parameters';
+import { exportReadingsCsv } from '@/lib/export';
 import { timeAgo } from '@/lib/format';
 import type { RootStackParamList } from '@/navigation/types';
 import type { TankEvent } from '@/types';
@@ -47,6 +49,7 @@ export function TankDetailScreen() {
     () => allEvents.filter((e) => e.tankId === tankId).sort((a, b) => +new Date(b.at) - +new Date(a.at)),
     [allEvents, tankId],
   );
+  const isPro = usePremiumStore((s) => s.isPro);
 
   useLayoutEffect(() => {
     navigation.setOptions({ title: tank?.name ?? 'Tank' });
@@ -60,6 +63,18 @@ export function TankDetailScreen() {
       </ScreenContainer>
     );
   }
+
+  const onExport = async () => {
+    if (!isPro) {
+      navigation.navigate('Paywall', { feature: 'export' });
+      return;
+    }
+    try {
+      await exportReadingsCsv(tank, readings);
+    } catch {
+      Alert.alert('Export failed', 'Could not export your readings. Please try again.');
+    }
+  };
 
   const confirmDelete = () => {
     Alert.alert('Delete tank?', `This removes ${tank.name}, its readings, and its activity.`, [
@@ -132,7 +147,13 @@ export function TankDetailScreen() {
             </Card>
           ) : null}
 
-          <SectionHeader title="History" subtitle={`${readings.length} readings`} />
+          <SectionHeader
+            title="History"
+            subtitle={`${readings.length} readings`}
+            right={
+              <Button label="Export CSV" variant="secondary" onPress={onExport} style={styles.doseBtn} />
+            }
+          />
           {readings.map((r) => (
             <Card key={r.id}>
               <View style={styles.histRow}>

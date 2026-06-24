@@ -148,6 +148,24 @@ export const PARAMETERS_BY_KEY: Record<ParameterKey, ParameterDef> = PARAMETERS.
   {} as Record<ParameterKey, ParameterDef>,
 );
 
+/**
+ * Typical parameter values of freshly mixed reef saltwater at ~35 ppt. Used to
+ * model how a water change shifts each parameter toward the new water.
+ * TODO (v1.1): let users set these per salt brand / per tank.
+ */
+export const FRESH_SALTWATER: Partial<Record<ParameterKey, number>> = {
+  temp: 77,
+  salinity: 35,
+  ph: 8.2,
+  alkalinity: 8,
+  calcium: 420,
+  magnesium: 1300,
+  nitrate: 0,
+  phosphate: 0,
+  ammonia: 0,
+  nitrite: 0,
+};
+
 /** The parameters surfaced by default in the free tier add-reading flow. */
 export const CORE_PARAMETER_KEYS: ParameterKey[] = [
   'temp',

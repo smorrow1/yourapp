@@ -1,5 +1,5 @@
 import type { ParameterKey, Reading, TankEvent } from '@/types';
-import { PARAMETERS_BY_KEY } from './parameters';
+import { FRESH_SALTWATER, PARAMETERS_BY_KEY } from './parameters';
 import { DOSING_PRODUCTS, type DosingProduct } from './dosing';
 
 const MS_PER_DAY = 1000 * 60 * 60 * 24;
@@ -9,7 +9,9 @@ export interface ConsumptionEstimate {
   perDay: number | null;
   /** How many usable intervals fed the estimate. */
   intervals: number;
-  /** Intervals ignored because a water change happened in them. */
+  /** Intervals whose water change(s) were modeled and netted out. */
+  waterChangesModeled: number;
+  /** Intervals skipped because a water change couldn't be modeled (no reference value). */
   skippedForWaterChange: number;
 }
 
@@ -44,14 +46,45 @@ function riseFromDoses(
 }
 
 /**
+ * Parameter-unit change produced by water change(s) of `key` within (start, end].
+ * A water change of fraction f moves the value toward fresh saltwater:
+ *   delta = f * (freshValue - valueBeforeChange)
+ * We approximate valueBeforeChange with the interval's starting value.
+ * Returns null when no reference (fresh) value exists for the parameter — the
+ * caller then skips the interval rather than guess.
+ */
+function changeFromWaterChanges(
+  events: TankEvent[],
+  key: ParameterKey,
+  start: number,
+  end: number,
+  startValue: number,
+): { delta: number; count: number } | null {
+  const inInterval = events.filter(
+    (e) => e.type === 'waterChange' && new Date(e.at).getTime() > start && new Date(e.at).getTime() <= end,
+  );
+  if (inInterval.length === 0) return { delta: 0, count: 0 };
+
+  const fresh = FRESH_SALTWATER[key];
+  if (fresh === undefined) return null;
+
+  let delta = 0;
+  for (const ev of inInterval) {
+    const f = Math.min(Math.max((ev.percent ?? 0) / 100, 0), 1);
+    delta += f * (fresh - startValue);
+  }
+  return { delta, count: inInterval.length };
+}
+
+/**
  * Estimate a tank's average daily uptake ("consumption") of a parameter from its
  * own test history — the core of "intelligent dosing instead of guessing".
  *
  * For each interval between two tests:
- *   consumed = (startValue + doses added in the interval) - endValue
- * Logged doses are netted out, so the estimate stays accurate even while you dose.
- * Intervals containing a water change are skipped, since a water change shifts the
- * value toward fresh-saltwater levels and would confound the uptake math.
+ *   consumed = startValue + dosesAdded + waterChangeShift - endValue
+ * Logged doses and water changes are both netted out, so the estimate stays
+ * accurate even while you actively dose and do water changes. An interval is only
+ * skipped when a water change can't be modeled (no reference value for the param).
  *
  * Returns perDay = null when no usable interval shows net consumption.
  */
@@ -66,11 +99,18 @@ export function estimateDailyConsumption({
     .map((r) => ({ t: new Date(r.takenAt).getTime(), v: r.values[key] as number }))
     .sort((a, b) => a.t - b.t);
 
-  if (points.length < 2) return { perDay: null, intervals: 0, skippedForWaterChange: 0 };
+  const empty: ConsumptionEstimate = {
+    perDay: null,
+    intervals: 0,
+    waterChangesModeled: 0,
+    skippedForWaterChange: 0,
+  };
+  if (points.length < 2) return empty;
 
   let totalConsumed = 0;
   let totalDays = 0;
   let intervals = 0;
+  let modeled = 0;
   let skipped = 0;
 
   for (let i = 1; i < points.length; i++) {
@@ -79,27 +119,32 @@ export function estimateDailyConsumption({
     const days = (end - start) / MS_PER_DAY;
     if (days <= 0) continue;
 
-    const hasWaterChange = events.some(
-      (e) => e.type === 'waterChange' && new Date(e.at).getTime() > start && new Date(e.at).getTime() <= end,
-    );
-    if (hasWaterChange) {
+    const startValue = points[i - 1].v;
+    const wc = changeFromWaterChanges(events, key, start, end, startValue);
+    if (wc === null) {
       skipped += 1;
       continue;
     }
 
     const dosed = riseFromDoses(events, key, start, end, volumeGallons);
-    const consumed = points[i - 1].v + dosed - points[i].v;
+    const consumed = startValue + dosed + wc.delta - points[i].v;
     if (consumed > 0) {
       totalConsumed += consumed;
       totalDays += days;
       intervals += 1;
+      if (wc.count > 0) modeled += 1;
     }
   }
 
   if (intervals === 0 || totalDays === 0) {
-    return { perDay: null, intervals: 0, skippedForWaterChange: skipped };
+    return { ...empty, skippedForWaterChange: skipped };
   }
-  return { perDay: totalConsumed / totalDays, intervals, skippedForWaterChange: skipped };
+  return {
+    perDay: totalConsumed / totalDays,
+    intervals,
+    waterChangesModeled: modeled,
+    skippedForWaterChange: skipped,
+  };
 }
 
 /** mL of product per day needed to offset the measured daily consumption. */

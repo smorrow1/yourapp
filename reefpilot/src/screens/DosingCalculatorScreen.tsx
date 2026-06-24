@@ -149,11 +149,12 @@ export function DosingCalculatorScreen() {
               value={`~${suggestNextTestDays(product.parameter, consumption.perDay)} days`}
             />
             <Text style={[typography.caption, styles.maintEmpty]}>
-              Estimated from {consumption.intervals} interval{consumption.intervals === 1 ? '' : 's'} of your history
-              {consumption.skippedForWaterChange > 0
-                ? `; ${consumption.skippedForWaterChange} skipped for water changes`
-                : ''}
-              . Logged doses are accounted for.
+              Estimated from {consumption.intervals} interval{consumption.intervals === 1 ? '' : 's'} of your history.
+              Logged doses
+              {consumption.waterChangesModeled > 0
+                ? ` and ${consumption.waterChangesModeled} water change${consumption.waterChangesModeled === 1 ? '' : 's'}`
+                : ''}{' '}
+              are accounted for.
             </Text>
           </View>
         )}
