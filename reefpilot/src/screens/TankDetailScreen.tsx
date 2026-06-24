@@ -1,4 +1,4 @@
-import React, { useLayoutEffect } from 'react';
+import React, { useLayoutEffect, useMemo } from 'react';
 import { Alert, StyleSheet, Text, View } from 'react-native';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -26,9 +26,19 @@ export function TankDetailScreen() {
   const tank = useTankStore((s) => s.tanks.find((t) => t.id === tankId));
   const removeTank = useTankStore((s) => s.removeTank);
   const selectTank = useTankStore((s) => s.selectTank);
-  const readings = useReadingStore((s) => s.readings.filter((r) => r.tankId === tankId));
+  // Subscribe to the stable array reference, then derive the filtered/sorted
+  // list with useMemo. Returning `.filter(...)` directly from the selector would
+  // produce a new array every render and loop under zustand v5 / useSyncExternalStore.
+  const allReadings = useReadingStore((s) => s.readings);
+  const readings = useMemo(
+    () =>
+      allReadings
+        .filter((r) => r.tankId === tankId)
+        .sort((a, b) => +new Date(b.takenAt) - +new Date(a.takenAt)),
+    [allReadings, tankId],
+  );
 
-  const latest = readings.sort((a, b) => +new Date(b.takenAt) - +new Date(a.takenAt))[0];
+  const latest = readings[0];
 
   useLayoutEffect(() => {
     navigation.setOptions({ title: tank?.name ?? 'Tank' });
