@@ -22,16 +22,20 @@ Free core + **ReefPilot Pro** (lifetime unlock hero at $39.99, or $24.99/yr / $4
 
 Gating lives in [`src/lib/gating.ts`](src/lib/gating.ts). The paywall is a **soft** trigger fired on intent moments (open dosing, add 2nd tank, export) and once after the 3rd saved reading.
 
-> Payments are mocked in [`src/store/usePremiumStore.ts`](src/store/usePremiumStore.ts). Search for `TODO` to wire up **RevenueCat** before release.
+> IAP runs through **RevenueCat** ([`src/lib/iap.ts`](src/lib/iap.ts)), wired into
+> [`usePremiumStore`](src/store/usePremiumStore.ts). With no API key configured it
+> falls back to a local unlock so development works without a store account. See
+> [`docs/RELEASE.md`](docs/RELEASE.md) to configure real products.
 
 ## Tech stack
 
 - **Expo SDK 54** (managed, New Architecture) + **React Native 0.81** / **React 19** + **TypeScript**
   - Requires **Node 20.19.4+** (or 22.x) to run the dev server.
 - **React Navigation** (bottom tabs + native stack)
-- **Zustand** + `persist` → AsyncStorage (offline-first, **no backend, no auth**)
+- **Zustand** + `persist` → AsyncStorage (offline-first, **no backend, no auth**), with a launch-time hydration gate
+- **RevenueCat** (`react-native-purchases`) for in-app purchases, behind a defensive abstraction
 - **react-native-svg** for the trend chart (no heavy chart dep)
-- **expo-notifications** for local test reminders
+- **expo-notifications** for local test reminders; **ErrorBoundary** for crash safety
 
 ## Project structure
 
@@ -52,29 +56,48 @@ src/
 ```bash
 cd reefpilot
 npm install
-npm start          # then press i (iOS sim), a (Android), or scan in Expo Go
+npm start          # press i (iOS sim), a (Android), or scan in Expo Go
 ```
 
-Type-check:
+Expo Go still works for day-to-day JS iteration — the RevenueCat native module
+isn't present there, so purchases fall back to the local mock unlock. For **real
+IAP and store builds** use an EAS dev/production build (see below).
+
+Checks:
 
 ```bash
-npm run typecheck
+npm run typecheck   # tsc --noEmit
+npm run lint        # eslint
 ```
 
-> The `assets/` folder ships with a README but no images yet — see [`assets/README.md`](assets/README.md). In dev Expo will boot anyway; add icons before building for the stores.
+## Building for the stores
+
+The app uses native modules, so it builds with **EAS**, not Expo Go. Full
+step-by-step: [`docs/RELEASE.md`](docs/RELEASE.md). Store listing copy and review
+answers: [`docs/APP_STORE.md`](docs/APP_STORE.md).
+
+```bash
+npm i -g eas-cli && eas login
+eas init                                   # sets extra.eas.projectId
+eas build   --profile production --platform ios
+eas submit  --profile production --platform ios --latest
+```
 
 ## Before you publish — TODO checklist
 
-Search the codebase for `TODO`. Key items:
+Done in this pass: branded icons/splash, `app.config.ts` + `eas.json`, RevenueCat
+wiring, hydration gate + ErrorBoundary, ESLint, legal docs, store kit.
 
-- [ ] App icons & splash (`assets/`, `app.json`)
-- [ ] Set real `bundleIdentifier` / `package` in `app.json`
-- [ ] Integrate **RevenueCat** (replace mock purchase/restore in `usePremiumStore`)
-- [ ] Verify dosing preset strengths vs. manufacturer labels (`src/domain/dosing.ts`)
-- [ ] Real Privacy Policy + Terms URLs (`PrivacyScreen`, `PaywallScreen`)
+Still requires **your** accounts/keys (see [`docs/RELEASE.md`](docs/RELEASE.md)) — search the codebase for `TODO`:
+
+- [ ] Confirm `BUNDLE_ID` in `app.config.ts` is one you own; register App ID / package
+- [ ] `eas init` (project id) + create the 3 IAPs and RevenueCat `pro` entitlement
+- [ ] Set `REVENUECAT_IOS_API_KEY` (EAS secret)
+- [ ] Host `docs/PRIVACY.md` + `docs/TERMS.md`; set URLs in `PrivacyScreen.tsx` and the listing
 - [ ] Support email (`FeedbackScreen`)
-- [ ] Analytics/crash SDK + disclosure (optional)
-- [ ] App Store / Play metadata & screenshots (see ASO notes below)
+- [ ] Verify dosing presets (`src/domain/dosing.ts`) and `FRESH_SALTWATER` (`src/domain/parameters.ts`)
+- [ ] Screenshots + final listing copy (`docs/APP_STORE.md`)
+- [ ] Optional: crash reporting SDK (wire into `ErrorBoundary`) + disclosure
 
 ## ASO positioning
 

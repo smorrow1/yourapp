@@ -5,7 +5,6 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { ScreenContainer } from '@/components/ScreenContainer';
 import { Card } from '@/components/Card';
-import { Button } from '@/components/Button';
 import { colors, radius, spacing, typography } from '@/theme';
 import { useSettingsStore } from '@/store/useSettingsStore';
 import { usePremiumStore } from '@/store/usePremiumStore';

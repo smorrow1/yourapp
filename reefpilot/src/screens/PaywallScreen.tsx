@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Alert, StyleSheet, Text, View } from 'react-native';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
@@ -30,6 +30,9 @@ interface PlanOption {
   badge?: string;
 }
 
+// TODO: once RevenueCat products are live, fetch the current offering and show
+// each package's localized `product.priceString` instead of these static prices,
+// so displayed prices always match the store (and are correctly localized).
 const PLANS: PlanOption[] = [
   { plan: 'lifetime', title: 'Lifetime', price: '$39.99', caption: 'Pay once. Yours forever.', badge: 'Best value' },
   { plan: 'yearly', title: 'Yearly', price: '$24.99/yr', caption: 'Just $2.08/mo, billed yearly.' },
@@ -39,21 +42,36 @@ const PLANS: PlanOption[] = [
 export function PaywallScreen() {
   const navigation = useNavigation<Nav>();
   const feature = useRoute<Rt>().params?.feature;
-  const { mockPurchase, mockRestore, isPro } = usePremiumStore();
+  const { purchase: buy, restore: restorePurchase, isPro } = usePremiumStore();
   const [selected, setSelected] = useState<PlanOption['plan']>('lifetime');
+  const [busy, setBusy] = useState(false);
 
   const headline = feature ? FEATURE_COPY[feature] : null;
 
-  const purchase = () => {
-    // TODO: replace with RevenueCat Purchases.purchasePackage(pkg)
-    mockPurchase(selected);
-    navigation.goBack();
+  const purchase = async () => {
+    setBusy(true);
+    try {
+      const result = await buy(selected);
+      if (result === 'success') navigation.goBack();
+      else if (result === 'error') {
+        Alert.alert('Purchase failed', 'Something went wrong. You have not been charged. Please try again.');
+      }
+      // 'cancelled' — stay on the paywall silently
+    } finally {
+      setBusy(false);
+    }
   };
 
-  const restore = () => {
-    // TODO: replace with RevenueCat Purchases.restorePurchases()
-    mockRestore();
-    if (usePremiumStore.getState().isPro) navigation.goBack();
+  const restore = async () => {
+    setBusy(true);
+    try {
+      const result = await restorePurchase();
+      if (result === 'restored') navigation.goBack();
+      else if (result === 'none') Alert.alert('Nothing to restore', 'No previous purchase was found for your account.');
+      else Alert.alert('Restore failed', 'Could not restore purchases. Please try again.');
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (
@@ -105,10 +123,10 @@ export function PaywallScreen() {
           <Text style={[typography.body, { color: colors.good }]}>You already have Pro. Thank you!</Text>
         </View>
       ) : (
-        <Button label="Unlock ReefPilot Pro" onPress={purchase} />
+        <Button label="Unlock ReefPilot Pro" onPress={purchase} loading={busy} />
       )}
 
-      <Button label="Restore purchases" variant="ghost" onPress={restore} />
+      <Button label="Restore purchases" variant="ghost" onPress={restore} disabled={busy} />
       <Text style={styles.legal}>
         Payment is charged to your store account. Subscriptions renew unless cancelled 24h before period end.
         {'\n'}TODO: link real Terms of Use & Privacy Policy before store submission.

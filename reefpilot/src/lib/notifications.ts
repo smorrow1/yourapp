@@ -45,6 +45,7 @@ export async function scheduleTestReminder(
             type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
             seconds,
             repeats: true,
+            channelId: 'reminders', // matches the channel created in bootstrap (Android)
           },
   });
   return id;

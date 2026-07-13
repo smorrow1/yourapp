@@ -95,7 +95,7 @@ export function DosingCalculatorScreen() {
           <>
             <Text style={typography.label}>Already above target</Text>
             <Text style={[typography.body, { marginTop: 4 }]}>
-              You can't lower {def.label.toLowerCase()} by dosing. Consider a water change.
+              You can’t lower {def.label.toLowerCase()} by dosing. Consider a water change.
             </Text>
           </>
         ) : (
@@ -130,8 +130,8 @@ export function DosingCalculatorScreen() {
         </View>
         {consumption.perDay === null ? (
           <Text style={[typography.caption, styles.maintEmpty]}>
-            Log at least two tests showing a drop in {def.label.toLowerCase()} and we'll estimate your
-            tank's daily uptake, a steady maintenance dose, and when to test next.
+            Log at least two tests showing a drop in {def.label.toLowerCase()} and we’ll estimate your
+            tank’s daily uptake, a steady maintenance dose, and when to test next.
           </Text>
         ) : (
           <View style={styles.statRows}>
@@ -187,7 +187,7 @@ function ProGate({ onUnlock }: { onUnlock: () => void }) {
         <Ionicons name="lock-closed" size={28} color={colors.primary} />
         <Text style={[typography.heading, { marginTop: spacing.md }]}>Dosing Calculator is a Pro feature</Text>
         <Text style={[typography.body, { color: colors.textMuted, textAlign: 'center', marginTop: 6 }]}>
-          Get the exact mL to dose, plus your tank's measured consumption rate and a steady
+          Get the exact mL to dose, plus your tank’s measured consumption rate and a steady
           maintenance dose — no more guesswork.
         </Text>
         <Button label="Unlock ReefPilot Pro" onPress={onUnlock} style={{ alignSelf: 'stretch', marginTop: spacing.lg }} />

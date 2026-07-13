@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -24,11 +24,22 @@ export function TrendsScreen() {
   const { width } = useWindowDimensions();
   const selectedTankId = useTankStore((s) => s.selectedTankId);
   const tank = useTankStore((s) => s.tanks.find((t) => t.id === s.selectedTankId));
-  // subscribe so the chart updates when readings change
-  useReadingStore((s) => s.readings);
+  const readings = useReadingStore((s) => s.readings);
   const isPro = usePremiumStore((s) => s.isPro);
 
   const [param, setParam] = useState<ParameterKey>('alkalinity');
+
+  const series = useMemo(() => {
+    if (!selectedTankId) return [] as { takenAt: string; value: number }[];
+    const full = readings
+      .filter((r) => r.tankId === selectedTankId && r.values[param] !== undefined)
+      .sort((a, b) => +new Date(a.takenAt) - +new Date(b.takenAt))
+      .map((r) => ({ takenAt: r.takenAt, value: r.values[param] as number }));
+    if (isPro) return full;
+    // eslint-disable-next-line react-hooks/purity -- current time is intended for a "last N days" display filter
+    const cutoff = Date.now() - FREE_TREND_DAYS * 24 * 60 * 60 * 1000;
+    return full.filter((p) => +new Date(p.takenAt) >= cutoff);
+  }, [readings, selectedTankId, param, isPro]);
 
   if (!tank || !selectedTankId) {
     return (
@@ -36,12 +47,6 @@ export function TrendsScreen() {
         <EmptyState icon="analytics-outline" title="No tank selected" message="Add a tank and log a few tests to see trends." />
       </ScreenContainer>
     );
-  }
-
-  let series = useReadingStore.getState().seriesForParam(selectedTankId, param);
-  if (!isPro) {
-    const cutoff = Date.now() - FREE_TREND_DAYS * 24 * 60 * 60 * 1000;
-    series = series.filter((p) => +new Date(p.takenAt) >= cutoff);
   }
 
   const def = PARAMETERS_BY_KEY[param];

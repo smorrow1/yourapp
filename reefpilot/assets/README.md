@@ -1,19 +1,23 @@
-# Assets — TODO before release
+# Assets
 
-This folder needs the following image assets. They are referenced in `app.json`.
-Until you add them, run with `expo start` (Expo will warn but still boot in dev),
-or temporarily remove the `icon`/`splash` keys from `app.json`.
+These are generated from a single SVG mark (a teal water droplet + compass
+needle on deep-ocean navy) — the "pilot for your reef" concept.
 
-| File | Size | Notes |
+| File | Size | Use |
 | --- | --- | --- |
-| `icon.png` | 1024×1024 | App icon. No transparency for iOS. |
-| `adaptive-icon.png` | 1024×1024 | Android foreground, safe zone centered. |
-| `splash.png` | 1284×2778 | Splash, centered logo on `#0B1622`. |
+| `icon.png` | 1024×1024 | iOS/Play app icon. Opaque (no alpha), as the App Store requires. |
+| `adaptive-icon.png` | 1024×1024 | Android adaptive foreground (transparent; bg is set in `app.config.ts`). |
+| `splash-icon.png` | 1024×1024 | Splash mark (transparent); background painted by the splash plugin. |
+| `notification-icon.png` | 96×96 | Android status-bar icon (white silhouette on transparent). |
+| `favicon.png` | 48×48 | Web favicon. |
 
-## Branding concept
+## Regenerating
 
-- **Name:** ReefPilot
-- **Mark:** a stylized water drop / wave merged with a compass needle — "pilot for your reef".
-- **Palette:** deep ocean navy `#0B1622` background, teal `#21C0A6` primary, amber `#F5A623` accent.
+The generator lives in the scratchpad (`gen-assets.mjs`, uses `sharp`). To tweak
+the mark, edit the SVG in that script and re-run it, or drop in your own PNGs at
+the sizes above.
+
+## Branding
+
+- **Palette:** navy `#0B1622` (bg), teal `#21C0A6` (primary), amber `#F5A623` (accent).
 - **Tone:** calm, precise, trustworthy — a dependable instrument, not a toy.
-- **Icon idea:** teal drop on navy with a thin compass tick ring.
