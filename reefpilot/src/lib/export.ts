@@ -5,8 +5,11 @@ import { CORE_PARAMETER_KEYS, PARAMETERS_BY_KEY } from '@/domain/parameters';
 import type { Reading, Tank } from '@/types';
 
 function csvEscape(value: string): string {
-  if (/[",\n]/.test(value)) return `"${value.replace(/"/g, '""')}"`;
-  return value;
+  // Neutralize spreadsheet formula injection: a cell starting with = + - @ (or a
+  // control char) can execute when opened in Excel/Sheets. Prefix with a quote.
+  let v = /^[=+\-@\t\r]/.test(value) ? `'${value}` : value;
+  if (/[",\n]/.test(v)) v = `"${v.replace(/"/g, '""')}"`;
+  return v;
 }
 
 /** Build a CSV with one row per reading, oldest first — handy for ICP comparisons and forum help. */
